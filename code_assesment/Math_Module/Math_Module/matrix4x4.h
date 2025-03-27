@@ -68,6 +68,18 @@ public:
 		return result;
 	}
 
+	[[nodiscard]] static Matrix4x4 createRotationY(float angle) noexcept {
+		const float cos_a = std::cos(angle);
+		const float sin_a = std::sin(angle);
+
+		Matrix4x4 result;
+		result.m[0][0] = cos_a;
+		result.m[0][2] = sin_a;
+		result.m[2][0] = -sin_a;
+		result.m[2][2] = cos_a;
+		return result;
+	}
+
 	[[nodiscard]] static Matrix4x4 createRotationZ(float angle) noexcept {
 		const float cos_a = std::cos(angle);
 		const float sin_a = std::sin(angle);
