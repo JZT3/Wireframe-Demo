@@ -12,7 +12,8 @@ private:
 
 public:
 	FrameBuffer(int width, int height) : width(width), height(height) {
-		pixels.resize(width * height, Color::Black());
+		std::size_t bufferSize = static_cast<std::size_t>(width) * static_cast<std::size_t>(height);
+		pixels.resize(bufferSize, Color::Black());
 	}
 
 	void clear(const Color& color = Color::Black()) {
@@ -21,14 +22,22 @@ public:
 
 	void setPixel(int x, int y, const Color& color) {
 		if (x >= 0 && x < width && y >= 0 && y < height) {
-			pixels[y * width + x] = color;
+			std::size_t index = static_cast<std::size_t>(y) *
+				static_cast<std::size_t>(width) +
+				static_cast<std::size_t>(x);
+			
+			pixels[index] = color;
 		}
 	}
 
 
 	[[nodiscard]] Color getPixel(int x, int y) const {
 		if (x >= 0 && x < width && y >= 0 && y < height) {
-			return pixels[y * width + x];
+			std::size_t index = static_cast<std::size_t>(y) *
+				static_cast<std::size_t>(width) +
+				static_cast<std::size_t>(x);
+
+			return pixels[index];
 		}
 		return Color::Black();
 	}
