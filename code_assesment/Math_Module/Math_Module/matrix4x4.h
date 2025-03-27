@@ -1,4 +1,5 @@
 #pragma once
+#include <cmath> // its better to explictly declare dependencies.
 
 // Forward declaration
 class Vector3D;
