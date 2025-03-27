@@ -20,28 +20,31 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Math_Module\vector3d.h">
+    <ClInclude Include="include\vector3d.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Math_Module\vector2d.h">
+    <ClInclude Include="include\vector2d.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Math_Module\matrix4x4.h">
+    <ClInclude Include="include\matrix4x4.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Math_Module\projection.h">
+    <ClInclude Include="include\projection.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Math_Module\vertex.h">
+    <ClInclude Include="include\vertex.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Math_Module\edge.h">
+    <ClInclude Include="include\edge.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Math_Module\wireframe.h">
+    <ClInclude Include="include\wireframe.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Render_Module\renderer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\transformation.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -98,7 +98,7 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)Math_Module\Math_Module</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Math_Module\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -116,7 +116,7 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)Math_Module\Math_Module</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Math_Module\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -134,7 +134,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)Math_Module\Math_Module</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Math_Module\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -152,7 +152,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)Math_Module\Math_Module</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Math_Module\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -167,13 +167,14 @@
     <ClCompile Include="src\matrix4x4.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Math_Module\edge.h" />
-    <ClInclude Include="Math_Module\matrix4x4.h" />
-    <ClInclude Include="Math_Module\projection.h" />
-    <ClInclude Include="Math_Module\vector2d.h" />
-    <ClInclude Include="Math_Module\vector3d.h" />
-    <ClInclude Include="Math_Module\vertex.h" />
-    <ClInclude Include="Math_Module\wireframe.h" />
+    <ClInclude Include="include\edge.h" />
+    <ClInclude Include="include\transformation.h" />
+    <ClInclude Include="include\matrix4x4.h" />
+    <ClInclude Include="include\projection.h" />
+    <ClInclude Include="include\vector2d.h" />
+    <ClInclude Include="include\vector3d.h" />
+    <ClInclude Include="include\vertex.h" />
+    <ClInclude Include="include\wireframe.h" />
     <ClInclude Include="Render_Module\renderer.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
