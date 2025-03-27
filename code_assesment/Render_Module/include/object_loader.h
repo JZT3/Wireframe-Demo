@@ -1,11 +1,16 @@
 #pragma once
+
 #include <vector>
 #include <map>
+#include <algorithm>
 #include <fstream>
+#include <sstream>
 #include <string>
 #include "vector3d.h"
 #include "wireframe.h"
 
+#undef max
+#undef min
 
 class ObjectLoader {
 private:
@@ -23,7 +28,7 @@ public:
 
 		// Read Header: num of vertices and faces
 		int numVertices = 0;
-		int numFaces	= 0;
+		int numFaces = 0;
 
 		file >> numVertices >> numFaces;
 
@@ -59,43 +64,48 @@ public:
 	}
 
 private:
-	void normalizeObject(WireFrameObject& object) {
-		const auto& vertices = object.getVertices();
-		if (vertices.empty()) return;
+    void normalizeObject(WireFrameObject& object) {
+        const auto& vertices = object.getVertices();
+        if (vertices.empty()) return;
 
-		Vector3D min(std::numeric_limits<float>::max(),
-			std::numeric_limits<float>::max(),
-			std::numeric_limits<float>::max());
+        Vector3D min{ std::numeric_limits<float>::max(),
+            std::numeric_limits<float>::max(),
+            std::numeric_limits<float>::max() };
+        Vector3D max{ std::numeric_limits<float>::lowest(),
+            std::numeric_limits<float>::lowest(),
+            std::numeric_limits<float>::lowest() };
 
-		Vector3D max(std::numeric_limits<float>::lowest(),
-			std::numeric_limits<float>::lowest(),
-			std::numeric_limits<float>::lowest());
+        for (const auto& vertex : vertices) {
+            const auto& pos = vertex.getPosition();
+            min.x = std::min(min.x, pos.x);
+            min.y = std::min(min.y, pos.y);
+            min.z = std::min(min.z, pos.z);
+            max.x = std::max(max.x, pos.x);
+            max.y = std::max(max.y, pos.y);
+            max.z = std::max(max.z, pos.z);
+        }
 
-		for (const auto& vertex : vertices) {
-			const auto& pos = vertex.getPosition();
-			min.x = std::min(min.x, pos.x);
-			min.y = std::min(min.y, pos.y);
-			min.z = std::min(min.z, pos.z);
+        Vector3D center(
+            (min.x + max.x) / 2.0f,
+            (min.y + max.y) / 2.0f,
+            (min.z + max.z) / 2.0f
+        );
 
-			max.x = std::min(max.x, pos.x);
-			max.y = std::min(max.y, pos.y);
-			max.z = std::min(max.z, pos.z);
-		}
+        // calc max dimension
+        float dx = max.x - min.x;
+        float dy = max.y - min.y;
+        float dz = max.z - min.z;
+		float dw = (std::max(dx, dy));
+        float maxDim = std::max(dw, dz);
 
-		Vector3D center((min.x + max.x) / 2.0f,
-			(min.y + max.y) / 2.0f,
-			(min.z + max.z) / 2.0f);
+        float scale = 2.0f / maxDim; // Scale to fit in [-1, 1] cube
 
-		// calc max dimension
-		float maxDim = std::max({ max.x - min.x, max.y - min.y, max.z - min.z });
-		float scale = 2.0f / maxDim; // Scale to fit in [-1, 1] cube
+        // Create translation and scaling matrices
+        Matrix4x4 translation = Matrix4x4::createTranslation(-center.x, -center.y, -center.z);
+        Matrix4x4 scaling = Matrix4x4::createScale(scale, scale, scale);
 
-		// Create translation and scaling matrices
-		Matrix4x4 translation = Matrix4x4::createTranslation(-center.x, -center.y, -center.z);
-		Matrix4x4 scaling = Matrix4x4::createScale(scale, scale, scale);
+        object.transform(translation);
+        object.transform(scaling);
+    }
 
-		object.transform(translation);
-		object.transform(scaling);
-	
-	}
 };

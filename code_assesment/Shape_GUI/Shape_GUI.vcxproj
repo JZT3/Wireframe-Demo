@@ -21,8 +21,8 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{d860308d-c47f-4518-9729-64466b438765}</ProjectGuid>
-    <RootNamespace>Neocis</RootNamespace>
+    <ProjectGuid>{b8aceb8f-1e69-4faf-96da-2d0734a49580}</ProjectGuid>
+    <RootNamespace>ShapeGUI</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -70,40 +70,16 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <OutDir>$(SolutionsDir)bin\$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionsDir)bin\intermediates\$(Platform)\$(Configuration)\</IntDir>
-    <LibraryPath>$(SolutionDir)Render_Module\bin\x64\$(Configuration)\Render_Module.lib;$(SolutionDir)Math_Module\bin\x64\$(Configuration)\;$(LibraryPath)</LibraryPath>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <OutDir>$(SolutionsDir)bin\$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionsDir)bin\intermediates\$(Platform)\$(Configuration)\</IntDir>
-    <LibraryPath>$(SolutionDir)Render_Module\bin\x64\$(Configuration)\Render_Module.lib;$(SolutionDir)Math_Module\bin\x64\$(Configuration)\;$(LibraryPath)</LibraryPath>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <OutDir>$(SolutionsDir)bin\$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionsDir)bin\intermediates\$(Platform)\$(Configuration)\</IntDir>
-    <LibraryPath>$(SolutionDir)Render_Module\bin\x64\$(Configuration)\Render_Module.lib;$(SolutionDir)Math_Module\bin\x64\$(Configuration)\;$(LibraryPath)</LibraryPath>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <OutDir>$(SolutionsDir)bin\$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionsDir)bin\intermediates\$(Platform)\$(Configuration)\</IntDir>
-    <LibraryPath>$(SolutionDir)Render_Module\bin\x64\$(Configuration)\Render_Module.lib;$(SolutionDir)Math_Module\bin\x64\$(Configuration)\;$(LibraryPath)</LibraryPath>
-  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)Render_Module\include;$(SolutionDir)Math_Module\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>$(SolutionDir)Render_Module\bin\intermediates\x64\$(Configuration)\renderer.obj;$(SolutionDir)Math_Module\bin\intermediates\x64\$(Configuration)\matrix4x4.obj;Comctl32.lib;Comdlg32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)Render_Module\bin\x64\$(Configuration)\;"C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.43.34808\lib\onecore\x64\msvctd.lib";$(SolutionDir)Math_Module\bin\x64\$(Configuration)\Math_Module.lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -112,34 +88,26 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)Render_Module\include;$(SolutionDir)Math_Module\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>$(SolutionDir)Render_Module\bin\intermediates\x64\$(Configuration)\renderer.obj;$(SolutionDir)Math_Module\bin\intermediates\x64\$(Configuration)\matrix4x4.obj;Comctl32.lib;Comdlg32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)Render_Module\bin\x64\$(Configuration)\;"C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.43.34808\lib\onecore\x64\msvctd.lib";$(SolutionDir)Math_Module\bin\x64\$(Configuration)\Math_Module.lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)Render_Module\include;$(SolutionDir)Math_Module\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>$(SolutionDir)Render_Module\bin\intermediates\x64\$(Configuration)\renderer.obj;$(SolutionDir)Math_Module\bin\intermediates\x64\$(Configuration)\matrix4x4.obj;Comctl32.lib;Comdlg32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)Render_Module\bin\x64\$(Configuration)\;"C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.43.34808\lib\onecore\x64\msvctd.lib";$(SolutionDir)Math_Module\bin\x64\$(Configuration)\Math_Module.lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -148,31 +116,31 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)Render_Module\include;$(SolutionDir)Math_Module\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>$(SolutionDir)Render_Module\bin\intermediates\x64\$(Configuration)\renderer.obj;$(SolutionDir)Math_Module\bin\intermediates\x64\$(Configuration)\matrix4x4.obj;Comctl32.lib;Comdlg32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)Render_Module\bin\x64\$(Configuration)\;"C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.43.34808\lib\onecore\x64\msvctd.lib";$(SolutionDir)Math_Module\bin\x64\$(Configuration)\Math_Module.lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="src\Source.cpp" />
-    <ClCompile Include="src\application.cpp" />
+    <ClInclude Include="framework.h" />
+    <ClInclude Include="Resource.h" />
+    <ClInclude Include="Shape_GUI.h" />
+    <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Math_Module\Math_Module.vcxproj">
-      <Project>{3759e601-4505-4b4a-b01f-88b68a8a512e}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\Render_Module\Render_Module.vcxproj">
-      <Project>{7dd1d951-18b8-4e25-b894-8ef17eac510c}</Project>
-    </ProjectReference>
+    <ClCompile Include="Shape_GUI.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Shape_GUI.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="Shape_GUI.ico" />
+    <Image Include="small.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

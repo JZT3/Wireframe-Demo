@@ -155,6 +155,7 @@
     <ClInclude Include="include\framebuffer.h" />
     <ClInclude Include="include\object_loader.h" />
     <ClInclude Include="include\renderer.h" />
+    <ClInclude Include="include\window_render.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Math_Module\Math_Module.vcxproj">

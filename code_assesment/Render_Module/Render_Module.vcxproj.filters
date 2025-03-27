@@ -27,6 +27,9 @@
     <ClInclude Include="include\object_loader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\window_render.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\renderer.cpp">
