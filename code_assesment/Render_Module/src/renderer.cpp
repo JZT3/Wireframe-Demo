@@ -6,7 +6,7 @@
 #include <algorithm>
 
 Renderer::Renderer(int width, int height)
-	: width(width), height(height), framecount(0) {
+	: width(width), height(height), frameCount(0) {
 	framebuffer = std::make_unique<FrameBuffer>(width, height);
 }
 
