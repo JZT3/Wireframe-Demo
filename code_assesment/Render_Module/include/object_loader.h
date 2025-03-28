@@ -64,6 +64,7 @@ namespace Render {
         }
 
     public:
+
         [[nodiscard]] std::unique_ptr<WireframeObject> loadFromCSV(const std::string& filename) {
             std::ifstream file(filename);
             if (!file.is_open()) {
@@ -75,6 +76,7 @@ namespace Render {
 
             std::string line;
             bool readingVertices = true;
+            bool hasEdges = false;
 
             while (std::getline(file, line)) {
                 // Skip empty lines and comments
@@ -135,8 +137,55 @@ namespace Render {
                 }
             }
 
+            // If no edges were specified but we have vertices, generate edges automatically
+    // for point cloud data
+            if (!hasEdges && object->getVertices().size() > 0) {
+                GenerateEdgesFromPointCloud(*object);
+            }
             normalizeObject(*object);
             return object;
+        }
+
+        void GenerateEdgesFromPointCloud(WireframeObject& object) {
+            const auto& vertices = object.getVertices();
+            size_t vertexCount = vertices.size();
+
+            // For small point clouds, create a complete graph
+            if (vertexCount <= 20) {
+                for (size_t i = 0; i < vertexCount; ++i) {
+                    for (size_t j = i + 1; j < vertexCount; ++j) {
+                        object.addEdge(Edge(i, j));
+                    }
+                }
+            }
+            else {
+                // For larger point clouds, connect nearest neighbors
+                const int MAX_CONNECTIONS = 3; // Connect each point to its 3 nearest neighbors
+
+                for (size_t i = 0; i < vertexCount; ++i) {
+                    // Calculate distances to all other vertices
+                    std::vector<std::pair<float, size_t>> distances;
+                    const auto& pos1 = vertices[i].getPosition();
+
+                    for (size_t j = 0; j < vertexCount; ++j) {
+                        if (i != j) {
+                            const auto& pos2 = vertices[j].getPosition();
+                            float dx = pos2.x - pos1.x;
+                            float dy = pos2.y - pos1.y;
+                            float dz = pos2.z - pos1.z;
+                            float distSq = dx * dx + dy * dy + dz * dz;
+                            distances.push_back({ distSq, j });
+                        }
+                    }
+
+                    std::sort(distances.begin(), distances.end());
+
+                    // Connect to nearest neighbors
+                    for (int k = 0; k < std::min(MAX_CONNECTIONS, static_cast<int>(distances.size())); ++k) {
+                        object.addEdge(Edge(i, distances[k].second));
+                    }
+                }
+            }
         }
     };
 }

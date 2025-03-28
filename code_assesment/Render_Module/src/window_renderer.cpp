@@ -1,12 +1,16 @@
 #include "window_render.h"
 #include <windowsx.h>
 #include <commdlg.h>
+#include <shlobj_core.h>
 #include "renderer.h"
 #include "framebuffer.h"
 #include "wireframe.h"
 #include "object_loader.h"
 #include "transformation.h"
 
+#define IDM_FILE_OPEN 1001
+#define IDM_FILE_EXIT 1002
+#define WM_RENDER_FRAME (WM_USER + 1)  // continuous rendering
 
 namespace Render {
     // Definition of the implementation class
@@ -34,14 +38,29 @@ namespace Render {
         int lastMouseY;
         float rotationX;
         float rotationY;
+        bool isDragging;
+        float viewDistance;
+
+        UINT_PTR renderTimer;
 
         // Constructor
-        // Replace the old constructor with this new version
         Impl(HWND hwnd, int width, int height)
             : hwnd(hwnd), width(width), height(height),
             objectLoaded(false), mouseDown(false),
             rotationX(0.0f), rotationY(0.0f),
             memDC(NULL), memBitmap(NULL), oldBitmap(NULL) {
+
+            HMENU hMenu = CreateMenu();
+            HMENU hFileMenu = CreatePopupMenu();
+
+            // Add menu items
+            AppendMenu(hFileMenu, MF_STRING, IDM_FILE_OPEN, L"&Open...");
+            AppendMenu(hFileMenu, MF_SEPARATOR, 0, NULL);
+            AppendMenu(hFileMenu, MF_STRING, IDM_FILE_EXIT, L"E&xit");
+            AppendMenu(hMenu, MF_POPUP, (UINT_PTR)hFileMenu, L"&File");
+
+            // Set menu to window
+            SetMenu(hwnd, hMenu);
 
             // Get device context
             hdc = GetDC(hwnd);
@@ -52,10 +71,17 @@ namespace Render {
             // Initialize timing
             QueryPerformanceFrequency(&frequency);
             QueryPerformanceCounter(&lastTime);
+
+            renderTimer = SetTimer(hwnd, 1, 16, NULL);
         }
 
         // Destructor
         ~Impl() {
+
+            if (renderTimer) {
+                KillTimer(hwnd, renderTimer);
+            }
+
             // Clean up GDI resources
             if (memDC) {
                 SelectObject(memDC, oldBitmap);
@@ -64,6 +90,14 @@ namespace Render {
             }
 
             ReleaseDC(hwnd, hdc);
+        }
+
+        void ResetView() {
+            rotationX = 0.0f;
+            rotationY = 0.0f;
+            AdjustViewForObject();
+            UpdateTransformation();
+            InvalidateRect(hwnd, NULL, TRUE);
         }
 
         // Create back buffer for double buffering
@@ -89,15 +123,33 @@ namespace Render {
             renderer.clear(Color::Black());
 
             // Render object if loaded
-            if (objectLoaded && object) {
+            if (objectLoaded && object && !object->getVertices().empty()) {
                 // Create a copy of the object
                 WireframeObject transformedObject = *object;
 
                 // Apply transformations
                 transformedObject.transform(transformPipeline.getTransformMatrix());
 
-                // Render the transformed object
-                renderer.drawWireframeObject(transformedObject, 3, Color::Blue());
+                //Check if transformed object has valid coordinates
+                bool validObject = true;
+                for (const auto& vertex : transformedObject.getVertices()) {
+                    const auto& pos = vertex.getPosition();
+                    if (std::isnan(pos.x) || std::isnan(pos.y) || std::isnan(pos.z) ||
+                        !std::isfinite(pos.x) || !std::isfinite(pos.y) || !std::isfinite(pos.z)) {
+                        validObject = false;
+                        break;
+                    }
+                }
+
+
+                // Render the transformed object only if valid coordinates
+                if (validObject) {
+                    renderer.drawWireframeObject(transformedObject, 3, Color::Blue());
+                }
+                else {
+                    ResetView();
+                    return;
+                }
             }
 
             // Copy frame buffer to the device context
@@ -112,7 +164,7 @@ namespace Render {
             SetTextColor(memDC, RGB(255, 255, 255));
             SetBkMode(memDC, TRANSPARENT);
             RECT textRect = { 10, 10, width - 10, 30 };
-            DrawText(memDC, TEXT("Left-click and drag to rotate. Right-click to load object."), -1, &textRect, DT_LEFT);
+            DrawText(memDC, TEXT("Left-click and drag to rotate."), -1, &textRect, DT_LEFT);
 
             // Blit to the window
             BitBlt(hdc, 0, 0, width, height, memDC, 0, 0, SRCCOPY);
@@ -121,56 +173,97 @@ namespace Render {
         // Mouse movement handler
         void OnMouseMove(int x, int y) {
             if (mouseDown && objectLoaded) {
+                isDragging = true;
+
                 // Calculate mouse movement delta
                 int deltaX = x - lastMouseX;
                 int deltaY = y - lastMouseY;
 
                 // Update rotation angles
-                const float rotationFactor = 0.01f;
+                const float rotationFactor = 0.005f;
                 rotationY += deltaX * rotationFactor;
                 rotationX += deltaY * rotationFactor;
 
+                // Clamp rotation angles
+                const float PI = 3.14159265359f;
+                while (rotationX > PI) rotationX -= 2.0f * PI;
+                while (rotationX < -PI) rotationX += 2.0f * PI;
+                while (rotationY > PI) rotationY -= 2.0f * PI;
+                while (rotationY < -PI) rotationY += 2.0f * PI;
+
                 // Update transformation
-                transformPipeline.clear();
-                transformPipeline.addTranslation(0.0f, 0.0f, 3.0f);
-                transformPipeline.addRotationX(rotationX);
-                transformPipeline.addRotationY(rotationY);
+                UpdateTransformation();
 
                 // Update mouse position
                 lastMouseX = x;
                 lastMouseY = y;
 
                 // Request redraw
-                InvalidateRect(hwnd, NULL, TRUE);
+                InvalidateRect(hwnd, NULL, FALSE);
             }
+        }
+
+        void AdjustViewForObject() {
+            if (!object) return;
+
+            float maxDist = 0.0f;
+            const auto& vertices = object->getVertices();
+
+            if (!vertices.empty()) {
+                for (const auto& vertex : vertices) {
+                    const auto& pos = vertex.getPosition();
+                    float dist = std::sqrt(pos.x * pos.x + pos.y * pos.y + pos.z * pos.z);
+                    maxDist = std::max(maxDist, dist);
+                }
+
+                viewDistance = std::max(3.0f, maxDist * 2.5f);
+            }
+            else {
+                viewDistance = 5.0f;
+            }
+            UpdateTransformation();
+        }
+
+        void UpdateTransformation() {
+            transformPipeline.clear();
+
+            // Apply rotations
+            transformPipeline.addRotationX(rotationX);
+            transformPipeline.addRotationY(rotationY);
+
+            transformPipeline.addTranslation(0.0f, 0.0f, -viewDistance);
         }
     };
 
     // Static window procedure implementation - redirects to instance method
     LRESULT CALLBACK WindowRenderer::StaticWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
-        WindowRenderer* instance = nullptr;
+        WindowRenderer* instance = reinterpret_cast<WindowRenderer*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
         
         // Get the object pointer from window's user data or creation params
-        if (uMsg == WM_CREATE || uMsg == WM_CREATE) {
-            // Store the WindowRenderer pointer during creation
-            CREATESTRUCT* cs = reinterpret_cast<CREATESTRUCT*>(lParam);
-            instance = reinterpret_cast<WindowRenderer*>(cs->lpCreateParams);
-            SetWindowLongPtr(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(instance));
-        }
-        else {
-            instance = reinterpret_cast<WindowRenderer*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
-        }
-
-        // Forward to instance method if available
         if (instance) {
+            // Store the WindowRenderer pointer during creation
             return instance->HandleMessage(hwnd, uMsg, wParam, lParam);
         }
+        
 
         return DefWindowProc(hwnd, uMsg, wParam, lParam);
     }
 
     // Instance method to handle window messages
     LRESULT WindowRenderer::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+        // Defer messages that need pImpl until initialization is complete
+        if (!initialized) {
+            switch (uMsg) {
+            case WM_CLOSE:
+            case WM_DESTROY:
+            case WM_NCCREATE:
+            case WM_CREATE:
+                break; // Handle these below
+            default:
+                return DefWindowProc(hwnd, uMsg, wParam, lParam); // Defer all others
+            }
+        }
+        
         switch (uMsg) {
         case WM_CLOSE:
             DestroyWindow(hwnd);
@@ -181,36 +274,74 @@ namespace Render {
             return 0;
 
         case WM_SIZE:
-            Resize(LOWORD(lParam), HIWORD(lParam));
+            if (initialized && pImpl) {
+                Resize(LOWORD(lParam), HIWORD(lParam));
+            }
             return 0;
 
         case WM_PAINT:
         {
             PAINTSTRUCT ps;
             BeginPaint(hwnd, &ps);
-            pImpl->RenderFrame();
+            if (initialized && pImpl) {
+                pImpl->RenderFrame();
+            }
             EndPaint(hwnd, &ps);
             return 0;
         }
 
+        case WM_TIMER:
+            // Render on timer for smooth animation
+            if (initialized && pImpl) {
+                pImpl->RenderFrame();
+            }
+            return 0;
+
+        case WM_COMMAND:
+            // Handle menu commands
+            switch (LOWORD(wParam)) {
+            case IDM_FILE_OPEN:
+                if (initialized) {
+                    OpenFileDialog();
+                }
+                return 0;
+
+            case IDM_FILE_EXIT:
+                DestroyWindow(hwnd);
+                return 0;
+            }
+            break;
+
         case WM_LBUTTONDOWN:
-            pImpl->mouseDown = true;
-            pImpl->lastMouseX = LOWORD(lParam);
-            pImpl->lastMouseY = HIWORD(lParam);
-            SetCapture(hwnd);
+            if (initialized && pImpl) {
+                pImpl->mouseDown = true;
+                pImpl->isDragging = false;
+                pImpl->lastMouseX = LOWORD(lParam);
+                pImpl->lastMouseY = HIWORD(lParam);
+                SetCapture(hwnd);
+            }
             return 0;
 
         case WM_LBUTTONUP:
-            pImpl->mouseDown = false;
-            ReleaseCapture();
+            if (initialized && pImpl) {
+                pImpl->mouseDown = false;
+                pImpl->isDragging = false;
+                ReleaseCapture();
+            }
             return 0;
 
         case WM_MOUSEMOVE:
-            pImpl->OnMouseMove(LOWORD(lParam), HIWORD(lParam));
+            if (initialized && pImpl) {
+                pImpl->OnMouseMove(LOWORD(lParam), HIWORD(lParam));
+            }
             return 0;
 
-        case WM_RBUTTONDOWN:
-            OpenFileDialog();
+        case WM_KEYDOWN: // Add Reset
+            if (wParam == VK_ESCAPE || wParam == 'R') {
+                if (initialized && pImpl) {
+                    pImpl->ResetView();
+                }
+            }
             return 0;
         }
 
@@ -231,7 +362,7 @@ namespace Render {
         RegisterClassEx(&wc);
 
         // Set this instance in user data
-        SetProp(GetDesktopWindow(), L"CurrentRenderer", reinterpret_cast<HANDLE>(this));
+        //SetProp(GetDesktopWindow(), L"CurrentRenderer", reinterpret_cast<HANDLE>(this));
 
         // Now create window
         HWND hwnd = CreateWindowEx(
@@ -243,10 +374,14 @@ namespace Render {
             NULL, NULL, GetModuleHandle(NULL), this     // Pass this as creation parameter
         );
 
+       
         if (!hwnd) {
             MessageBoxA(NULL, "Failed to create window", "Error", MB_ICONERROR);
             throw std::runtime_error("Failed to create window");
         }
+
+        // Set instance pointer
+        SetWindowLongPtr(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this));
 
         // After window is created, then create implementation
         pImpl = std::make_unique<Impl>(hwnd, width, height);
@@ -269,20 +404,19 @@ namespace Render {
     // Forward public methods to implementation
     void WindowRenderer::LoadObject(std::unique_ptr<WireframeObject> newObject) {
         // Null Check
-        if (!pImpl) return;
-        pImpl->object = std::move(newObject);
-        pImpl->objectLoaded = true;
+        if (initialized && pImpl) {
+            pImpl->object = std::move(newObject);
+            pImpl->objectLoaded = true;
 
-        // Reset rotation
-        pImpl->rotationX = 0.0f;
-        pImpl->rotationY = 0.0f;
+            // Reset rotation
+            pImpl->rotationX = 0.0f;
+            pImpl->rotationY = 0.0f;
 
-        // Clear transformations and add default ones
-        pImpl->transformPipeline.clear();
-        pImpl->transformPipeline.addTranslation(0.0f, 0.0f, 3.0f); // Move back so object is visible
+            pImpl->AdjustViewForObject();
 
-        // Trigger redraw
-        InvalidateRect(pImpl->hwnd, NULL, TRUE);
+            // Trigger redraw
+            InvalidateRect(pImpl->hwnd, NULL, TRUE);
+        }
     }
 
     void WindowRenderer::LoadTetrahedron() {
@@ -309,8 +443,13 @@ namespace Render {
     }
 
     void WindowRenderer::OpenFileDialog() {
+        if (!initialized || !pImpl) return;
+
         OPENFILENAMEA ofn;
         char szFile[260] = { 0 };
+        char szInitialDir[MAX_PATH] = { 0 };
+
+        SHGetFolderPathA(NULL, CSIDL_MYDOCUMENTS, NULL, 0, szInitialDir);
 
         ZeroMemory(&ofn, sizeof(ofn));
         ofn.lStructSize = sizeof(ofn);
