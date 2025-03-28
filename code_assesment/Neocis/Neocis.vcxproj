@@ -170,6 +170,9 @@
       <Project>{7dd1d951-18b8-4e25-b894-8ef17eac510c}</Project>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup>
+    <Text Include="..\..\..\..\Users\jazzm\Downloads\object.txt" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

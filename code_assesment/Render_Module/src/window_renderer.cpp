@@ -28,8 +28,9 @@ namespace Render {
         LARGE_INTEGER lastTime;
 
         // Object and transformation state
-        std::unique_ptr<WireframeObject> object;
+        std::shared_ptr<WireframeObject> object;
         Math::TransformationPipeline transformPipeline;
+        std::vector<std::shared_ptr<WireframeObject>> objectCache;
         bool objectLoaded;
 
         // Mouse interaction state
@@ -403,18 +404,18 @@ namespace Render {
 
     // Forward public methods to implementation
     void WindowRenderer::LoadObject(std::unique_ptr<WireframeObject> newObject) {
-        // Null Check
         if (initialized && pImpl) {
-            pImpl->object = std::move(newObject);
+            // Convert to shared ownership
+            auto sharedObject = std::shared_ptr<WireframeObject>(std::move(newObject));
+            pImpl->objectCache.push_back(sharedObject);
+            pImpl->object = sharedObject; // Change type to std::shared_ptr
             pImpl->objectLoaded = true;
 
-            // Reset rotation
+            // Reset view parameters
             pImpl->rotationX = 0.0f;
             pImpl->rotationY = 0.0f;
-
             pImpl->AdjustViewForObject();
 
-            // Trigger redraw
             InvalidateRect(pImpl->hwnd, NULL, TRUE);
         }
     }
@@ -456,13 +457,13 @@ namespace Render {
         ofn.hwndOwner = pImpl->hwnd;
         ofn.lpstrFile = szFile;
         ofn.nMaxFile = sizeof(szFile);
-        ofn.lpstrFilter = "Object Files\0*.obj;*.csv;*.txt\0All Files\0*.*\0";
+        ofn.lpstrFilter = "CSV Files\0*.csv\0All Files\0*.*\0";
         ofn.nFilterIndex = 1;
         ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
 
         if (GetOpenFileNameA(&ofn)) {
             try {
-                ObjectLoader loader;
+                ObjectLoader loader([]() { return std::make_unique<WireframeObject>(); });
                 auto newObject = loader.loadFromCSV(ofn.lpstrFile);
                 LoadObject(std::move(newObject));
             }
