@@ -1,111 +1,142 @@
 #pragma once
-
-#include <vector>
-#include <map>
-#include <algorithm>
+#include <string>
 #include <fstream>
 #include <sstream>
-#include <string>
-#include "vector3d.h"
+#include <memory>
+#include <map>
+#include <limits>
+#include <algorithm>
+#include <stdexcept>
 #include "wireframe.h"
+#include "vector3D.h"
+#include "matrix4x4.h"
 
 #undef max
 #undef min
 
-class ObjectLoader {
-private:
-	std::map<int, size_t> vertexMap;
+namespace Render {
+    class ObjectLoader {
+    private:
+        std::map<int, size_t> vertexMap;
 
-public:
-	WireFrameObject loadObject(const std::string& filename) {
-		std::ifstream file(filename);
-		if (!file.is_open()) {
-			throw std::runtime_error("Failed to open file: " + filename);
-		}
+        // Normalize object to fit in [-1,1] cube
+        void normalizeObject(WireframeObject& object) const noexcept {
+            const auto& vertices = object.getVertices();
+            if (vertices.empty()) return;
 
-		WireFrameObject object;
-		vertexMap.clear();
+            Math::Vector3D min{ std::numeric_limits<float>::max(),
+                std::numeric_limits<float>::max(),
+                std::numeric_limits<float>::max() };
+            Math::Vector3D max{ std::numeric_limits<float>::lowest(),
+                std::numeric_limits<float>::lowest(),
+                std::numeric_limits<float>::lowest() };
 
-		// Read Header: num of vertices and faces
-		int numVertices = 0;
-		int numFaces = 0;
+            for (const auto& vertex : vertices) {
+                const auto& pos = vertex.getPosition();
+                min.x = std::min(min.x, pos.x);
+                min.y = std::min(min.y, pos.y);
+                min.z = std::min(min.z, pos.z);
+                max.x = std::max(max.x, pos.x);
+                max.y = std::max(max.y, pos.y);
+                max.z = std::max(max.z, pos.z);
+            }
 
-		file >> numVertices >> numFaces;
+            Math::Vector3D center(
+                (min.x + max.x) / 2.0f,
+                (min.y + max.y) / 2.0f,
+                (min.z + max.z) / 2.0f
+            );
 
-		// Read vertices
-		for (int i = 0; i < numVertices; ++i) {
-			int id;
-			float x, y, z;
-			file >> id >> x >> y >> z;
+            // Calculate max dimension
+            float dx = max.x - min.x;
+            float dy = max.y - min.y;
+            float dz = max.z - min.z;
+            float maxDim = std::max({ dx, dy, dz });
 
-			vertexMap[id] = object.getVertices().size();
-			object.addVertex(Vertex(x, y, z));
-		}
+            float scale = 2.0f / maxDim; // Scale to fit in [-1, 1] cube
 
-		// Read faces
-		for (int i = 0; i < numFaces; ++i) {
-			int v1, v2, v3;
-			file >> v1 >> v2 >> v3;
+            // Create transformation matrices
+            Math::Matrix4x4 translation = Math::Matrix4x4::createTranslation(-center.x, -center.y, -center.z);
+            Math::Matrix4x4 scaling = Math::Matrix4x4::createScale(scale, scale, scale);
 
-			// Convert vertex ids into indices using map
-			size_t index1 = vertexMap[v1];
-			size_t index2 = vertexMap[v2];
-			size_t index3 = vertexMap[v3];
-
-			// Add edges
-			object.addEdge(Edge(index1, index2));
-			object.addEdge(Edge(index2, index3));
-			object.addEdge(Edge(index3, index1));
-		}
-
-		normalizeObject(object);
-
-		return object;
-	}
-
-private:
-    void normalizeObject(WireFrameObject& object) {
-        const auto& vertices = object.getVertices();
-        if (vertices.empty()) return;
-
-        Vector3D min{ std::numeric_limits<float>::max(),
-            std::numeric_limits<float>::max(),
-            std::numeric_limits<float>::max() };
-        Vector3D max{ std::numeric_limits<float>::lowest(),
-            std::numeric_limits<float>::lowest(),
-            std::numeric_limits<float>::lowest() };
-
-        for (const auto& vertex : vertices) {
-            const auto& pos = vertex.getPosition();
-            min.x = std::min(min.x, pos.x);
-            min.y = std::min(min.y, pos.y);
-            min.z = std::min(min.z, pos.z);
-            max.x = std::max(max.x, pos.x);
-            max.y = std::max(max.y, pos.y);
-            max.z = std::max(max.z, pos.z);
+            object.transform(translation);
+            object.transform(scaling);
         }
 
-        Vector3D center(
-            (min.x + max.x) / 2.0f,
-            (min.y + max.y) / 2.0f,
-            (min.z + max.z) / 2.0f
-        );
+    public:
+        [[nodiscard]] std::unique_ptr<WireframeObject> loadFromCSV(const std::string& filename) {
+            std::ifstream file(filename);
+            if (!file.is_open()) {
+                throw std::runtime_error("Failed to open file: " + filename);
+            }
 
-        // calc max dimension
-        float dx = max.x - min.x;
-        float dy = max.y - min.y;
-        float dz = max.z - min.z;
-		float dw = (std::max(dx, dy));
-        float maxDim = std::max(dw, dz);
+            auto object = std::make_unique<WireframeObject>();
+            vertexMap.clear();
 
-        float scale = 2.0f / maxDim; // Scale to fit in [-1, 1] cube
+            std::string line;
+            bool readingVertices = true;
 
-        // Create translation and scaling matrices
-        Matrix4x4 translation = Matrix4x4::createTranslation(-center.x, -center.y, -center.z);
-        Matrix4x4 scaling = Matrix4x4::createScale(scale, scale, scale);
+            while (std::getline(file, line)) {
+                // Skip empty lines and comments
+                if (line.empty() || line[0] == '#') continue;
 
-        object.transform(translation);
-        object.transform(scaling);
-    }
+                std::istringstream iss(line);
+                std::string token;
 
-};
+                // Check for section marker
+                if (line == "VERTICES") {
+                    readingVertices = true;
+                    continue;
+                }
+                else if (line == "FACES" || line == "EDGES") {
+                    readingVertices = false;
+                    continue;
+                }
+
+                // Parse based on current section
+                if (readingVertices) {
+                    // Format: id,x,y,z
+                    int id;
+                    float x, y, z;
+                    char comma;
+
+                    if (iss >> id >> comma >> x >> comma >> y >> comma >> z) {
+                        vertexMap[id] = object->getVertices().size();
+                        object->addVertex(Vertex(x, y, z));
+                    }
+                }
+                else {
+                    // Format: v1,v2,v3 (for faces) or v1,v2 (for edges)
+                    std::string edgeStr;
+                    std::vector<int> vertices;
+
+                    while (std::getline(iss, edgeStr, ',')) {
+                        try {
+                            vertices.push_back(std::stoi(edgeStr));
+                        }
+                        catch (const std::exception&) {
+                            // Skip invalid entries
+                        }
+                    }
+
+                    if (vertices.size() >= 2) {
+                        // Direct edge
+                        size_t index1 = vertexMap[vertices[0]];
+                        size_t index2 = vertexMap[vertices[1]];
+                        object->addEdge(Edge(index1, index2));
+
+                        // For faces, add additional edges
+                        if (vertices.size() >= 3) {
+                            size_t index3 = vertexMap[vertices[2]];
+                            object->addEdge(Edge(index2, index3));
+                            object->addEdge(Edge(index3, index1));
+                        }
+                    }
+                }
+            }
+
+            normalizeObject(*object);
+            return object;
+        }
+    };
+}

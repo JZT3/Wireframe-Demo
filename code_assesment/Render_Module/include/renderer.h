@@ -1,44 +1,76 @@
 #pragma once
-#include <string>
 #include <memory>
+#include <string>
+#include "render_target_interface.h"
+#include "graphics_primitaves.h"
 #include "vector2D.h"
 #include "vector3D.h"
+#include "projection.h"
 #include "framebuffer.h"
 
-class WireFrameObject;
+namespace Render {
+    // Forward declarations
+    class WireframeObject;
 
-class Renderer {
-private:
-	int width, height;
-	std::unique_ptr<FrameBuffer> framebuffer;
-	int frameCount;
+    // Main renderer class (Facade pattern)
+    class Renderer {
+    private:
+        std::shared_ptr<IRenderTarget> renderTarget;
 
-	// Drawing primatives
-	void drawBresenhamLine(int x0, int x1, int y0, int y1, const Color& color);
-	void drawCircle(int center_x, int center_y, int radius, const Color& color);
+    public:
+        explicit Renderer(std::shared_ptr<IRenderTarget> target) noexcept
+            : renderTarget(std::move(target)) {
+        }
 
-	[[nodiscard]] inline std::pair<int, int> worldToScreen(const Vector2D& point) const noexcept {
-		return {
-			static_cast<int>(point.x + width / 2.0f),
-			static_cast<int>(height / 2.0f - point.y)
-		};
-	}
+        void clear(const Color& color = Color::Black()) noexcept {
+            renderTarget->clear(color);
+        }
 
+        void drawVertex(const Math::Vector3D& position, int radius, const Color& color) noexcept {
+            // Project 3D position to 2D
+            const Math::Vector2D pos2D = Math::orthographicProject(position);
 
-public:
-	explicit Renderer(int width, int height);
-	~Renderer() noexcept = default;
+            // Convert to screen coordinates
+            const auto [screen_x, screen_y] = GraphicsPrimitives::worldToScreen(
+                pos2D, renderTarget->getWidth(), renderTarget->getHeight());
 
-	Renderer(const Renderer&) = delete;
-	Renderer& operator=(const Renderer&) = delete;
-	Renderer(Renderer&&) noexcept = delete;
-	Renderer& operator=(Renderer&&) noexcept = delete;
+            // Draw circle
+            GraphicsPrimitives::drawCircle(*renderTarget, screen_x, screen_y, radius, color);
+        }
 
-	void clear(const Color& color = Color::Black());
-	void drawVertex(const Vector3D& position, int radius, const Color& color);
-	void drawEdge(const Vector3D& start, const Vector3D& end, const Color& color);
-	void drawWireFrameObject(const WireFrameObject& object, int vertexRadius);
+        void drawEdge(const Math::Vector3D& start, const Math::Vector3D& end, const Color& color) noexcept {
+            // Project 3D positions to 2D
+            const Math::Vector2D start2D = Math::orthographicProject(start);
+            const Math::Vector2D end2D = Math::orthographicProject(end);
 
-	bool saveFrame(const std::string& filenamePrefix);
-};
+            // Convert to screen coordinates
+            const auto [start_x, start_y] = GraphicsPrimitives::worldToScreen(
+                start2D, renderTarget->getWidth(), renderTarget->getHeight());
+            const auto [end_x, end_y] = GraphicsPrimitives::worldToScreen(
+                end2D, renderTarget->getWidth(), renderTarget->getHeight());
 
+            // Draw line
+            GraphicsPrimitives::drawLine(*renderTarget, start_x, start_y, end_x, end_y, color);
+        }
+
+        // Render a wireframe object
+        void drawWireframeObject(const WireframeObject& object, int vertexRadius, const Color& color = Color::Blue()) noexcept;
+
+        // Save the current frame
+        bool saveFrame(const std::string& filenamePrefix, int frameCount) const noexcept {
+            if (auto* frameBuffer = dynamic_cast<FrameBuffer*>(renderTarget.get())) {
+                const std::string filename = filenamePrefix + "_" + std::to_string(frameCount) + ".ppm";
+                return frameBuffer->saveToPPM(filename);
+            }
+            return false;
+        }
+
+        [[nodiscard]] int getWidth() const noexcept {
+            return renderTarget->getWidth();
+        }
+
+        [[nodiscard]] int getHeight() const noexcept {
+            return renderTarget->getHeight();
+        }
+    };
+}
